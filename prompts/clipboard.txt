@@ -1,0 +1,4 @@
+Source: {source}
+{references}
+Current Draft: {current_draft}
+Comment: {comment}

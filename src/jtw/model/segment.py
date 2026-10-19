@@ -115,3 +115,21 @@ class Segment:
     @property
     def ref_index(self) -> int:
         return key_index(self.key)
+
+
+def merge_chains(segments: Sequence[Segment]) -> list[list[Segment]]:
+    """Group consecutive segments joined by ``merge_with_next`` into chains.
+
+    Every segment belongs to exactly one chain; a segment without the flag ends its chain.
+    Exports turn each chain into a single paragraph.
+    """
+    chains: list[list[Segment]] = []
+    current: list[Segment] = []
+    for segment in segments:
+        current.append(segment)
+        if not segment.merge_with_next:
+            chains.append(current)
+            current = []
+    if current:
+        chains.append(current)
+    return chains
