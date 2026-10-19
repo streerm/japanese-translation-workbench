@@ -2,18 +2,26 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+import json
+from pathlib import Path
+from typing import Annotated, Literal
 
 import typer
 from dotenv import find_dotenv, load_dotenv
 
 from jtw import __version__
 from jtw.config import ConfigError, Project, load_project
+from jtw.export.docx import ExportKind, export_part
+from jtw.export.stats import format_table, project_stats
 from jtw.llm.base import MissingAPIKey
 from jtw.llm.registry import ProviderFactory, Registry, build_registry, default_factory
+from jtw.model import store
 from jtw.model.store import StoreError
 from jtw.mt.pipeline import translate as run_translation
 from jtw.projects import ProjectExists, create_project, discover
+from jtw.search import guess_lang, highlight_spans
+from jtw.search import search as run_search
+from jtw.text.segmenter import DEFAULT_PART_CHARS, build_structure
 
 app = typer.Typer(
     name="jtw",
@@ -145,3 +153,125 @@ def translate(
     if not summary.ok:
         typer.echo("Re-run the same command to retry only what is still blank.")
         raise typer.Exit(1)
+
+
+@app.command()
+def ingest(
+    slug: Annotated[str, typer.Argument(help="Project slug.")],
+    file: Annotated[Path, typer.Argument(exists=True, dir_okay=False, help="Plain-text source.")],
+    part_chars: Annotated[
+        int, typer.Option(min=100, help="Target Japanese characters per part.")
+    ] = DEFAULT_PART_CHARS,
+    split_on_headings: Annotated[
+        bool, typer.Option(help="Start a new chapter at each heading line (第一章, 序章, ...).")
+    ] = False,
+    encoding: Annotated[str, typer.Option(help="Text encoding, e.g. utf-8 or shift_jis.")] = (
+        "utf-8"
+    ),
+    force: Annotated[bool, typer.Option(help="Overwrite an existing source.json.")] = False,
+) -> None:
+    """Split a plain-text file into parts and segments and write source.json."""
+    project = _project(slug)
+    target = project.paths.source_file
+    if target.exists() and not force:
+        raise _fail(f"{target} already exists; pass --force to replace it")
+    try:
+        text = file.read_text(encoding="utf-8-sig" if encoding.lower() == "utf-8" else encoding)
+    except (UnicodeDecodeError, LookupError) as exc:
+        raise _fail(f"could not read {file} as {encoding}: {exc}") from None
+    try:
+        structure = build_structure(
+            text, part_chars=part_chars, split_on_headings=split_on_headings
+        )
+    except ValueError as exc:
+        raise _fail(str(exc)) from None
+    payload = store.source_payload(structure)
+    target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    segments = sum(len(p.segments) for p in structure.parts)
+    typer.echo(f"Wrote {target}: {len(structure.parts)} part(s), {segments} segment(s).")
+
+
+def _selected_parts(project: Project, parts: str | None) -> list[str]:
+    structure = store.load_source(project.paths)
+    if not parts:
+        return structure.ids
+    return [p.id for p in structure.select(parts.split(","))]
+
+
+@app.command()
+def export(
+    slug: Annotated[str, typer.Argument(help="Project slug.")],
+    what: Annotated[ExportKind, typer.Option(help="What to export.")] = ExportKind.FINAL,
+    parts: Annotated[str | None, typer.Option(help="Parts to export (default: all).")] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Directory (default: exports/).")
+    ] = None,
+) -> None:
+    """Export parts to Word: final English, side-by-side J-E draft, or the source."""
+    project = _project(slug)
+    try:
+        part_ids = _selected_parts(project, parts)
+        structure = store.load_source(project.paths)
+        for part_id in part_ids:
+            loaded = store.load_part(project.paths, part_id, project.config.columns, structure)
+            typer.echo(str(export_part(project, loaded, what, output)))
+    except (StoreError, ValueError) as exc:
+        raise _fail(str(exc)) from None
+
+
+@app.command()
+def stats(
+    slug: Annotated[str, typer.Argument(help="Project slug.")],
+    as_json: Annotated[bool, typer.Option("--json", help="Machine-readable output.")] = False,
+) -> None:
+    """Character counts and translation progress per part."""
+    project = _project(slug)
+    try:
+        result = project_stats(project)
+    except StoreError as exc:
+        raise _fail(str(exc)) from None
+    if as_json:
+        typer.echo(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+    else:
+        typer.echo(format_table(result))
+
+
+def _styled(text: str, query: str) -> str:
+    return "".join(
+        typer.style(piece, fg=typer.colors.YELLOW, bold=True) if hit else piece
+        for piece, hit in highlight_spans(text, query)
+    )
+
+
+@app.command()
+def search(
+    slug: Annotated[str, typer.Argument(help="Project slug.")],
+    query: Annotated[str, typer.Argument(help="Text to find (Japanese or English).")],
+    lang: Annotated[
+        Literal["ja", "en", "both"] | None,
+        typer.Option(help="Search the source (ja), translations (en) or both. Default: guess."),
+    ] = None,
+    context: Annotated[int, typer.Option(min=0, help="Neighbouring segments to show.")] = 1,
+) -> None:
+    """Search the source and translations of every part."""
+    project = _project(slug)
+    try:
+        hits = run_search(project, query, lang=lang or guess_lang(query), context=context)
+    except StoreError as exc:
+        raise _fail(str(exc)) from None
+    for hit in hits:
+        typer.secho(f"{hit.ref}  ({hit.part_label}; in {', '.join(hit.fields)})", bold=True)
+        for neighbour in hit.before:
+            typer.echo(f"    {neighbour.key}  {neighbour.source}")
+        seg = hit.segment
+        typer.echo(f"  > {seg.key}  {_styled(seg.source, query)}")
+        if seg.final:
+            typer.echo(f"           {_styled(seg.final, query)}")
+        for column in hit.fields:
+            if column in seg.mt:
+                label = project.config.column_label(column)
+                typer.echo(f"           [{label}] {_styled(seg.mt[column], query)}")
+        for neighbour in hit.after:
+            typer.echo(f"    {neighbour.key}  {neighbour.source}")
+        typer.echo("")
+    typer.echo(f"{len(hits)} match(es).")
