@@ -1,0 +1,36 @@
+# secrets & local
+.env
+.venv/
+PLAN.md
+.claude/
+.vscode/
+.idea/
+.DS_Store
+.dbxignore
+
+# python
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# projects: private works stay out; only the template (and demo, once approved) is tracked
+projects/*
+!projects/README.md
+!projects/_template/
+# !projects/demo/
+
+# generated per-project artefacts
+**/saves/
+**/logs/
+**/tmp/
+**/exports/
+*.docx
+*.pdf
