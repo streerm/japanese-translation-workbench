@@ -46,9 +46,22 @@ _COMBINED_RE = re.compile(
     rf"[ \t]*\]{_DECOR}[ \t]*:?{_DECOR}[ \t]*",
     re.MULTILINE,
 )
+_COMMENTARY_RE = re.compile(
+    rf"^[ \t]*(?:#{{1,6}}[ \t]+)?{_DECOR}\[[ \t]*COMMENTARY[ \t]*\]{_DECOR}[ \t]*:?{_DECOR}[ \t]*",
+    re.MULTILINE | re.IGNORECASE,
+)
 _FENCE_LINE_RE = re.compile(r"^[ \t]*```[^\n]*$\n?", re.MULTILINE)
 _RULE_RE = re.compile(r"^[ \t]*(?:-{3,}|\*{3,}|_{3,})[ \t]*$", re.MULTILINE)
 _PARAGRAPH_BREAK_RE = re.compile(r"\n[ \t]*\n")
+
+
+def split_commentary(text: str) -> tuple[str, str]:
+    """Split a synthesis reply into ``(segment blocks, commentary)`` at a ``[COMMENTARY]`` line."""
+    match = _COMMENTARY_RE.search(text or "")
+    if not match:
+        return text or "", ""
+    commentary = _FENCE_LINE_RE.sub("", text[match.end() :]).strip()
+    return text[: match.start()], commentary
 
 
 class Problem(StrEnum):
