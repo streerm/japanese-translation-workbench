@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "parts": [
+    {
+      "id": "C01P01",
+      "label": "Chapter 1 · Part 1",
+      "chapter": "1",
+      "chapter_title": "朝",
+      "segments": [
+        { "key": "S001", "source": "朝の七時に目が覚めた。" },
+        { "key": "S002", "source": "窓の外では雨が静かに降っていた。" },
+        { "key": "S003", "source": "「おはよう」と姉が言った。" },
+        { "key": "S004", "source": "私はパンを焼いて、紅茶をいれた。" },
+        { "key": "S005", "source": "テーブルの上に新聞があった。" },
+        { "key": "S006", "source": "今日は駅まで歩くことにした。" }
+      ]
+    },
+    {
+      "id": "C01P02",
+      "label": "Chapter 1 · Part 2",
+      "chapter": "1",
+      "chapter_title": "朝",
+      "segments": [
+        { "key": "S001", "source": "駅前の店はまだ閉まっていた。" },
+        { "key": "S002", "source": "傘をさした人が何人か通り過ぎた。" },
+        { "key": "S003", "source": "「電車が遅れているそうです」" },
+        { "key": "S004", "source": "駅員はそう言って頭を下げた。" },
+        { "key": "S005", "source": "私はベンチに座って本を開いた。" },
+        { "key": "S006", "source": "雨の音だけが聞こえていた。" }
+      ]
+    }
+  ]
+}
