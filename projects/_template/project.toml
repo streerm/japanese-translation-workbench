@@ -1,0 +1,58 @@
+# Project configuration. `jtw new <slug>` copies this file into projects/<slug>/.
+# API keys never go here: set ANTHROPIC_API_KEY / OPENAI_API_KEY in the environment or .env.
+
+[work]
+slug         = "my-work"                 # must match the directory name
+title        = "Working Title"            # English working title
+title_source = "原題"                     # title in the original script
+author       = "Author Name"
+translator   = "Your Name"
+source_lang  = "ja"
+target_lang  = "en"
+
+[mt]
+# Column ids: run order for `jtw translate` and left-to-right order in the grid.
+columns = ["gpt", "opus", "fable"]
+
+[mt.column.gpt]
+label    = "GPT-6 Astra"
+provider = "openai"
+model    = "gpt-6-astra"
+
+[mt.column.opus]
+label    = "Opus 5"
+provider = "anthropic"
+model    = "claude-opus-5"
+
+[mt.column.fable]
+label    = "Fable 5.1"
+provider = "anthropic"
+model    = "claude-fable-5-1"
+
+[synthesis]
+draft     = { provider = "anthropic", model = "claude-opus-5" }
+deep_dive = { provider = "anthropic", model = "claude-opus-5" }
+
+[prompts]
+# Optional template overrides, relative to this project's directory.
+# Defaults are the files in the repository's prompts/ directory.
+# translate = "prompts/translate.md"
+# repair    = "prompts/repair.md"
+# draft     = "prompts/draft.md"
+# deep_dive = "prompts/deep_dive.md"
+# clipboard = "prompts/clipboard.txt"
+style_notes = """
+Narrator: first person, past tense. American English. Imperial units.
+Western name order for Japanese names.
+"""
+
+[glossary]
+# Source term = preferred English rendering. Rendered into the {glossary} prompt slot.
+"固有名詞" = "Proper Noun"
+
+[limits]
+max_tokens_part    = 32000
+max_tokens_default = 16000
+request_timeout_s  = 1800
+repair_passes      = 2
+keep_saves         = 10

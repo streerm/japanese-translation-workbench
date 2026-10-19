@@ -1,0 +1,33 @@
+[work]
+slug         = "mini"
+title        = "Mini Story"
+title_source = "小さな話"
+author       = "Test Author"
+translator   = "Test Translator"
+
+[mt]
+columns = ["alpha", "beta"]
+
+[mt.column.alpha]
+label    = "Model A"
+provider = "anthropic"
+model    = "fake-model-a"
+
+[mt.column.beta]
+label    = "Model B"
+provider = "openai"
+model    = "fake-model-b"
+
+[synthesis]
+draft     = { provider = "anthropic", model = "fake-model-draft" }
+deep_dive = { provider = "anthropic", model = "fake-model-deep" }
+
+[prompts]
+style_notes = "Past tense. American English."
+
+[glossary]
+"姉" = "my sister"
+
+[limits]
+repair_passes = 1
+keep_saves    = 3
