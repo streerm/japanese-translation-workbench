@@ -23,6 +23,18 @@ CLOSING_BRACKETS = "」』）)】〉》"
 DIALOGUE_OPEN = "「『"
 DIALOGUE_CLOSE = "」』"
 
+#: Brackets that suspend sentence splitting until they close.
+OPENING_BRACKETS = "「『（(【〈《"
+BRACKET_PAIRS = dict(zip(OPENING_BRACKETS, CLOSING_BRACKETS, strict=True))
+
+#: A line that is a chapter heading: 第一章, 第3話 タイトル, 序章, プロローグ, a bare numeral...
+HEADING_RE = re.compile(
+    r"^(?:第[0-9０-９一二三四五六七八九十百千]+[章話部節幕]|序章|終章|序|"
+    r"プロローグ|エピローグ|あとがき|[0-9０-９]+|[一二三四五六七八九十]+)"
+    r"(?:[ 　・:：．.、]+.*)?$"
+)
+HEADING_MAX_CHARS = 40
+
 _SPACE_RE = re.compile(r"\s+")
 
 
@@ -50,3 +62,18 @@ def char_count(text: str) -> int:
     line breaks and spaces do not.
     """
     return len(_SPACE_RE.sub("", text))
+
+
+def is_heading(line: str) -> bool:
+    """True for a short line that looks like a chapter heading and is not a sentence."""
+    stripped = line.strip()
+    if not stripped or len(stripped) > HEADING_MAX_CHARS:
+        return False
+    if stripped[-1] in SENTENCE_END + "」』":
+        return False
+    return HEADING_RE.match(stripped) is not None
+
+
+def join_lines(lines: list[str]) -> str:
+    """Join the lines of one Japanese paragraph: no spaces between them."""
+    return "".join(line.strip() for line in lines)
