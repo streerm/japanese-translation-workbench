@@ -26,6 +26,6 @@ def default_prompts_dir() -> Path:
 def bundled_template() -> Path:
     """The default ``project.toml`` template."""
     return _first_existing(
-        _PACKAGE_DIR / "resources" / "project.toml",
+        _PACKAGE_DIR / "templates" / "project.toml",
         _REPO_ROOT / "projects" / "_template" / "project.toml",
     )

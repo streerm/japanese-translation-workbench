@@ -56,7 +56,7 @@ rejected under one of six categories:
 
 | Category | Meaning | Example reply fragment |
 |---|---|---|
-| `missing` | Never returned, after the last returned key (typically truncation). | reply stops after `[S002]` |
+| `missing` | Never returned, before the first or after the last returned key (a skipped opening, or truncation). | reply stops after `[S002]` |
 | `merged` | Fused into a neighbour: a combined marker, or a gap between returned keys. | `[S002-S003]` or `[S001]` … `[S003]` |
 | `empty` | Key present, no text under it. | `[S002]` followed directly by `[S003]` |
 | `duplicate` | Key returned more than once (neither copy is trusted). | `[S002]` twice |

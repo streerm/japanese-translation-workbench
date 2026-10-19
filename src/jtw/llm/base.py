@@ -53,10 +53,11 @@ class MissingAPIKey(LLMError):
 class ModelMismatch(LLMError):
     """The provider answered with a different model than the one requested."""
 
-    def __init__(self, requested: str, returned: str) -> None:
+    def __init__(self, requested: str, returned: str, result: ModelResult | None = None) -> None:
         super().__init__(f"requested model {requested!r} but the response came from {returned!r}")
         self.requested = requested
         self.returned = returned
+        self.result = result  #: the discarded response, kept so it can be logged
 
 
 class Provider(Protocol):

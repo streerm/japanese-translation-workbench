@@ -32,7 +32,7 @@ def model_matches(returned: str, requested: str) -> bool:
 
 def check_model(result: ModelResult, requested: str) -> ModelResult:
     if not model_matches(result.model, requested):
-        raise ModelMismatch(requested, result.model)
+        raise ModelMismatch(requested, result.model, result)
     return result
 
 

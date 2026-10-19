@@ -76,6 +76,8 @@ class ParseProblems:
 
     by_kind: dict[Problem, list[str]] = field(default_factory=dict)
     no_markers: bool = False
+    #: Observations that do not reject a key by themselves, e.g. a truncated response.
+    notes: list[str] = field(default_factory=list)
 
     def add(self, kind: Problem, key: str) -> None:
         keys = self.by_kind.setdefault(kind, [])
@@ -98,6 +100,7 @@ class ParseProblems:
             if keys:
                 ordered = sorted(keys, key=key_index)
                 lines.append(f"keys {_DESCRIPTIONS[kind]}: {', '.join(ordered)}")
+        lines.extend(self.notes)
         return "\n".join(lines)
 
     def as_dict(self) -> dict[str, list[str]]:
@@ -208,12 +211,13 @@ def parse_response(text: str, keys: Sequence[str]) -> ParseResult:
 
 def _classify_absent(keys: Sequence[str], seen: Mapping[str, int], problems: ParseProblems) -> None:
     """Keys never returned: *merged* if they fall in a gap between returned keys (the model
-    folded them into a neighbour), *missing* if they trail off the end (typically truncation).
+    folded them into a neighbour), *missing* if they lie before the first or after the last
+    returned key (typically a skipped opening or a truncated reply).
     """
     flagged = set(problems.keys(Problem.MERGED))
-    returned_positions = [i for i, key in enumerate(keys) if key in seen or key in flagged]
-    last_returned = max(returned_positions, default=-1)
+    returned = [i for i, key in enumerate(keys) if key in seen or key in flagged]
+    first, last = (min(returned), max(returned)) if returned else (0, -1)
     for i, key in enumerate(keys):
         if key in seen or key in flagged:
             continue
-        problems.add(Problem.MERGED if i < last_returned else Problem.MISSING, key)
+        problems.add(Problem.MERGED if first < i < last else Problem.MISSING, key)
