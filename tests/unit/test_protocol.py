@@ -63,6 +63,7 @@ def _one(text: str, keys: list[str] = KEYS) -> dict[str, list[str]]:
     [
         ("[S001]\nA.\n[S002]\nB.", {"missing": ["S003"]}, ["S001", "S002"]),
         ("[S001]\nA.\n[S003]\nC.", {"merged": ["S002"]}, ["S001", "S003"]),
+        ("[S002]\nB.\n[S003]\nC.", {"missing": ["S001"]}, ["S002", "S003"]),
         ("[S001]\nA.\n[S002]\n\n[S003]\nC.", {"empty": ["S002"]}, ["S001", "S003"]),
         (
             "[S001]\nA.\n[S002]\nB.\n[S002]\nB again.\n[S003]\nC.",
