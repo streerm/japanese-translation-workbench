@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -275,3 +278,39 @@ def search(
             typer.echo(f"    {neighbour.key}  {neighbour.source}")
         typer.echo("")
     typer.echo(f"{len(hits)} match(es).")
+
+
+@app.command()
+def serve(
+    project: Annotated[
+        str | None, typer.Option(help="Project to open first (default: the first found).")
+    ] = None,
+    port: Annotated[int, typer.Option(min=1, max=65535, help="Port to listen on.")] = 8501,
+    open_browser: Annotated[
+        bool, typer.Option("--open/--no-open", help="Open a browser tab.")
+    ] = True,
+) -> None:
+    """Launch the Streamlit workbench."""
+    if project is not None:
+        _project(project)
+    from jtw.ui.state import PROJECT_ENV
+
+    app_path = Path(__file__).resolve().parent / "ui" / "app.py"
+    command = [
+        sys.executable,
+        "-m",
+        "streamlit",
+        "run",
+        str(app_path),
+        "--server.port",
+        str(port),
+        "--server.headless",
+        "false" if open_browser else "true",
+        "--browser.gatherUsageStats",
+        "false",
+    ]
+    env = dict(os.environ)
+    if project is not None:
+        env[PROJECT_ENV] = project
+    typer.echo(f"Starting the workbench on http://localhost:{port}")
+    raise typer.Exit(subprocess.run(command, env=env, check=False).returncode)

@@ -75,3 +75,28 @@ def test_list_populated(mini_paths: ProjectPaths, projects_dir: Path) -> None:
     assert "   12 " in lines["mini"]
     assert "invalid" in lines["broken"]
     assert "Working Title" in lines["fresh"]
+
+
+def test_serve_launches_streamlit(
+    mini_paths: ProjectPaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+    from types import SimpleNamespace
+
+    seen: dict[str, object] = {}
+
+    def fake_run(command: list[str], env: dict[str, str], check: bool) -> SimpleNamespace:
+        seen.update(command=command, env=env)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    result = runner.invoke(app, ["serve", "--project", "mini", "--port", "8600", "--no-open"])
+    assert result.exit_code == 0, result.output
+    command = seen["command"]
+    assert isinstance(command, list)
+    assert command[1:4] == ["-m", "streamlit", "run"]
+    assert command[4].endswith("jtw/ui/app.py")
+    assert command[command.index("--server.port") + 1] == "8600"
+    assert command[command.index("--server.headless") + 1] == "true"
+    assert seen["env"]["JTW_PROJECT"] == "mini"  # type: ignore[index]
+    assert runner.invoke(app, ["serve", "--project", "missing"]).exit_code == 1
