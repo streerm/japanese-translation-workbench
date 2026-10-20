@@ -1,4 +1,4 @@
-"""Deep Dive: iterative revision of a few segments against the translator's dictated notes.
+"""Deep Dive: iterative revision of a few segments against the translator's notes.
 
 A session covers a consecutive range of keys in one part. The first iteration sends the
 source, the current draft and the MT references with the translator's notes; each further
